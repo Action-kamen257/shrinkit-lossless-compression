@@ -515,41 +515,63 @@ Item {
                     }
 
                     // Animated Comparison Bar Chart
+                    // Left bar  = .huff archive size (the input file on disk)
+                    // Right bar = Restored original size (from header metadata set by inspectFile)
                     ComparisonBarChart {
                         id: decompBarChart
                         Layout.fillWidth: true
                         height: 210
-                        originalLabel: "Restored Original Size"
+
+                        // .huff archive — the left bar (always available on disk)
+                        originalLabel: "Archive (.huff)"
                         originalSize: {
-                            var b = ShrinkItEngine.getFileSize(root.selectedOutputPath);
-                            return b > 0 ? b : 100;
+                            var b = ShrinkItEngine.getFileSize(root.selectedInputPath);
+                            return b > 0 ? b : 1;
                         }
                         originalFormatted: {
-                            var b = ShrinkItEngine.getFileSize(root.selectedOutputPath);
+                            var b = ShrinkItEngine.getFileSize(root.selectedInputPath);
                             return ShrinkItEngine.formatBytes(b);
                         }
-                        compressedLabel: "Archive Size (.huff)"
+                        xAxisOriginalLabel: "Archive (.huff)"
+
+                        // Restored original — read originalSize from the .huff header (available after inspectFile)
+                        compressedLabel: "Restored Original"
                         compressedSize: {
-                            var b = ShrinkItEngine.getFileSize(root.selectedInputPath);
-                            return b > 0 ? b : 50;
+                            var s = ShrinkItEngine.lastStats;
+                            if (s && s.originalSize && s.originalSize > 0)
+                                return s.originalSize;
+                            // Fallback: try reading the output file if it already exists
+                            var b = ShrinkItEngine.getFileSize(root.selectedOutputPath);
+                            return b > 0 ? b : 1;
                         }
                         compressedFormatted: {
-                            var b = ShrinkItEngine.getFileSize(root.selectedInputPath);
-                            return ShrinkItEngine.formatBytes(b);
+                            var s = ShrinkItEngine.lastStats;
+                            if (s && s.originalSizeFormatted && s.originalSizeFormatted.length > 0)
+                                return s.originalSizeFormatted;
+                            var b = ShrinkItEngine.getFileSize(root.selectedOutputPath);
+                            return ShrinkItEngine.formatBytes(b > 0 ? b : 0);
                         }
+                        xAxisCompressedLabel: "Restored Original"
+
                         reductionText: {
-                            var o = ShrinkItEngine.getFileSize(root.selectedOutputPath);
-                            var c = ShrinkItEngine.getFileSize(root.selectedInputPath);
-                            if (o > 0 && c > 0 && o > c) {
-                                return "-" + ((1.0 - (c / o)) * 100).toFixed(1) + "%";
+                            var archiveBytes = ShrinkItEngine.getFileSize(root.selectedInputPath);
+                            var s = ShrinkItEngine.lastStats;
+                            var origBytes = (s && s.originalSize && s.originalSize > 0)
+                                            ? s.originalSize
+                                            : ShrinkItEngine.getFileSize(root.selectedOutputPath);
+                            if (origBytes > 0 && archiveBytes > 0 && origBytes > archiveBytes) {
+                                return "-" + ((1.0 - (archiveBytes / origBytes)) * 100).toFixed(1) + "%";
                             }
-                            return "100% Match";
+                            return "Lossless";
                         }
                         ratioText: {
-                            var o = ShrinkItEngine.getFileSize(root.selectedOutputPath);
-                            var c = ShrinkItEngine.getFileSize(root.selectedInputPath);
-                            if (o > 0 && c > 0 && c > 0) {
-                                return (o / c).toFixed(2) + "x";
+                            var archiveBytes = ShrinkItEngine.getFileSize(root.selectedInputPath);
+                            var s = ShrinkItEngine.lastStats;
+                            var origBytes = (s && s.originalSize && s.originalSize > 0)
+                                            ? s.originalSize
+                                            : ShrinkItEngine.getFileSize(root.selectedOutputPath);
+                            if (origBytes > 0 && archiveBytes > 0) {
+                                return (origBytes / archiveBytes).toFixed(2) + "x";
                             }
                             return "1.00x";
                         }

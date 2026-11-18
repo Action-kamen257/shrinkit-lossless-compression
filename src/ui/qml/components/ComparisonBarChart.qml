@@ -27,6 +27,12 @@ Item {
     property bool showSavingsBadge: true
     property bool drawBackground: false
 
+    property string xAxisOriginalLabel: "Original"
+    property string xAxisCompressedLabel: "Compressed"
+
+    // Dynamic maximum value for proportional scaling
+    readonly property real maxChartVal: Math.max(root.originalSize, root.compressedSize)
+
     // Standard bar dimensions (solid & thick)
     property real barWidth: 64
     property real chartHeight: 125
@@ -202,7 +208,11 @@ Item {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 width: root.barWidth
-                                height: Math.max(4, plotCanvas.height * root.animProgress)
+                                height: {
+                                    if (root.maxChartVal <= 0 || root.originalSize <= 0) return 4;
+                                    var rel = root.originalSize / root.maxChartVal;
+                                    return Math.max(4, plotCanvas.height * Math.min(1.0, rel) * root.animProgress);
+                                }
 
                                 Rectangle {
                                     id: origRect
@@ -236,7 +246,7 @@ Item {
                                 anchors.top: parent.bottom
                                 anchors.topMargin: 8
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Original"
+                                text: root.xAxisOriginalLabel
                                 font.pixelSize: 11
                                 font.weight: Font.Medium
                                 font.family: Theme.fontFamily
@@ -268,8 +278,9 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 width: root.barWidth
                                 height: {
-                                    var r = (root.originalSize > 0) ? (root.compressedSize / root.originalSize) : 0.5;
-                                    return Math.max(4, plotCanvas.height * Math.min(1.0, r) * root.animProgress);
+                                    if (root.maxChartVal <= 0 || root.compressedSize <= 0) return 4;
+                                    var rel = root.compressedSize / root.maxChartVal;
+                                    return Math.max(4, plotCanvas.height * Math.min(1.0, rel) * root.animProgress);
                                 }
 
                                 Rectangle {
@@ -294,7 +305,7 @@ Item {
                                 anchors.top: parent.bottom
                                 anchors.topMargin: 8
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Compressed"
+                                text: root.xAxisCompressedLabel
                                 font.pixelSize: 11
                                 font.weight: Font.DemiBold
                                 font.family: Theme.fontFamily
