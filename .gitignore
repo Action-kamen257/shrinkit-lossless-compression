@@ -1,0 +1,57 @@
+# Build artifacts
+build/
+bin/
+lib/
+out/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.ninja
+*.ninja_deps
+*.ninja_log
+.qt/
+.rcc/
+.moc/
+
+# MSVC / Visual Studio
+*.obj
+*.exe
+*.dll
+*.lib
+*.exp
+*.ilk
+*.pdb
+*.res
+*.idb
+*.manifest
+.vs/
+*.sln
+*.vcxproj*
+
+# Qt Generated files
+*.qrc.cpp
+qrc_*.cpp
+moc_*.cpp
+moc_*.h
+ui_*.h
+*_autogen/
+
+# Temporary test outputs
+test_*.txt
+test_*.huff
+*_demo.txt*
+restored_*
+*.tmp
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

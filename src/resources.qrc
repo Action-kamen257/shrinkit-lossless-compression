@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="ui/qml/qmldir">ui/qml/qmldir</file>
+        <file alias="ui/qml/Main.qml">ui/qml/Main.qml</file>
+        <file alias="ui/qml/Theme.qml">ui/qml/Theme.qml</file>
+        <file alias="ui/assets/logo.svg">ui/assets/logo.svg</file>
+        <file alias="ui/assets/app_icon.png">ui/assets/app_icon.png</file>
+        <file alias="ui/assets/app_icon.ico">ui/assets/app_icon.ico</file>
+        <file alias="ui/qml/components/ShrinkItLogo.qml">ui/qml/components/ShrinkItLogo.qml</file>
+        <file alias="ui/qml/components/LucideIcon.qml">ui/qml/components/LucideIcon.qml</file>
+        <file alias="ui/qml/components/GlassSegmentedControl.qml">ui/qml/components/GlassSegmentedControl.qml</file>
+        <file alias="ui/qml/components/ComparisonBarChart.qml">ui/qml/components/ComparisonBarChart.qml</file>
+        <file alias="ui/qml/components/AppSidebar.qml">ui/qml/components/AppSidebar.qml</file>
+        <file alias="ui/qml/components/GlassMaterial.qml">ui/qml/components/GlassMaterial.qml</file>
+        <file alias="ui/qml/components/GlassCard.qml">ui/qml/components/GlassCard.qml</file>
+        <file alias="ui/qml/components/GlassButton.qml">ui/qml/components/GlassButton.qml</file>
+        <file alias="ui/qml/components/GlassSlider.qml">ui/qml/components/GlassSlider.qml</file>
+        <file alias="ui/qml/components/GlassToggle.qml">ui/qml/components/GlassToggle.qml</file>
+        <file alias="ui/qml/components/GlassProgressBar.qml">ui/qml/components/GlassProgressBar.qml</file>
+        <file alias="ui/qml/views/OverviewView.qml">ui/qml/views/OverviewView.qml</file>
+        <file alias="ui/qml/views/CompressView.qml">ui/qml/views/CompressView.qml</file>
+        <file alias="ui/qml/views/DecompressView.qml">ui/qml/views/DecompressView.qml</file>
+    </qresource>
+</RCC>

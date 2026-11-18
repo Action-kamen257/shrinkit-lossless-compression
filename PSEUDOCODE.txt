@@ -1,0 +1,540 @@
+================================================================================
+                    SHRINKIT - ALGORITHM PSEUDOCODE SPECIFICATION
+      Design and Analysis of Algorithms (DAA) - Greedy Huffman Coding Project
+================================================================================
+
+PROJECT OVERVIEW:
+ShrinkIt is a high-performance lossless data compression and decompression system.
+It combines:
+  1. LZ77 Sliding Window Dictionary Matching (finds repetitive substring patterns)
+  2. Greedy Huffman Coding (optimal prefix-free variable-length entropy coding)
+  3. Min-Heap Priority Queue (efficient O(log N) node extraction)
+  4. Binary Tree Representation (hierarchical code traversal)
+  5. Compact Tree Topology Bit Serialization (minimal header overhead)
+  6. Adler-32 Checksum Verification (100% byte-for-byte lossless integrity)
+
+TABLE OF CONTENTS:
+  1. Data Structures Definition
+  2. Algorithm 1: Frequency Counting & Entropy Analysis
+  3. Algorithm 2: Min-Heap (Priority Queue) Construction & Maintenance
+  4. Algorithm 3: Greedy Huffman Tree Construction
+  5. Algorithm 4: Variable-Length Prefix-Free Code Generation (DFS Traversal)
+  6. Algorithm 5: LZ77 Sliding-Window Dictionary Pre-Pass
+  7. Algorithm 6: Compact Tree Topology Serialization & Deserialization
+  8. Algorithm 7: Full File Compression Pipeline
+  9. Algorithm 8: Full File Decompression Pipeline
+ 10. Algorithm 9: Adler-32 Checksum Calculation
+ 11. Theoretical Complexity Analysis (Time & Space)
+
+================================================================================
+1. DATA STRUCTURES DEFINITION
+================================================================================
+
+Structure HuffmanNode:
+    byte symbol          // 8-bit character / token (valid for leaf nodes)
+    uint64 frequency     // Count of occurrences of this symbol/subtree
+    bool isLeaf          // True if node is a leaf, false if internal merge node
+    HuffmanNode* left    // Pointer to left child (represents binary bit '0')
+    HuffmanNode* right   // Pointer to right child (represents binary bit '1')
+
+Structure MinHeap:
+    array of HuffmanNode* heapArray   // Dynamic or fixed array of pointers
+    integer size                      // Current number of elements in heap
+    integer capacity                  // Maximum allowable capacity (e.g., 512)
+
+Structure BitCode:
+    uint64 bits          // Bit sequence representation (up to 64 bits)
+    integer length       // Number of valid bits in the code (e.g., 3 bits: '101')
+
+Structure LZ77Token:
+    bool isMatch         // True if token is (distance, length) match; false if literal
+    byte literal         // Raw uncompressed byte
+    uint16 distance      // Backward distance in sliding window (1 to 32768)
+    uint16 length        // Matched substring length (3 to 258)
+
+
+================================================================================
+2. ALGORITHM 1: FREQUENCY COUNTING & ENTROPY ANALYSIS
+================================================================================
+
+Procedure CalculateFrequencies(inputBytes):
+    // PURPOSE: Scan input buffer and count the frequency of each unique byte.
+    // DATA STRUCTURE: Direct-address array of size 256 (O(1) lookups).
+    
+    // Step 1: Initialize frequency table with zeros
+    Initialize array freqTable[0 ... 255] with all 0s
+    
+    // Step 2: Traverse each byte in the input stream
+    For each byte 'b' in inputBytes:
+        // Increment the count corresponding to this byte's ASCII value
+        freqTable[b] = freqTable[b] + 1
+    End For
+    
+    // Step 3: Count unique symbols and calculate Shannon Entropy H(X)
+    uniqueCount = 0
+    totalBytes = length(inputBytes)
+    entropy = 0.0
+    
+    For i from 0 to 255:
+        If freqTable[i] > 0 Then
+            uniqueCount = uniqueCount + 1
+            probability = freqTable[i] / totalBytes
+            // Shannon Entropy formula: H(X) = - SUM(P(x) * log2(P(x)))
+            entropy = entropy - (probability * log2(probability))
+        End If
+    End For
+
+    Return freqTable, uniqueCount, entropy
+End Procedure
+
+
+================================================================================
+3. ALGORITHM 2: MIN-HEAP (PRIORITY QUEUE) OPERATIONS
+================================================================================
+
+// PURPOSE: Maintains elements in ascending order of frequency so that the two
+// lowest frequency nodes can be retrieved in O(log N) time.
+
+Procedure MinHeapInsert(heap, newNode):
+    // Insert new element at the end of the heap array
+    heap.size = heap.size + 1
+    index = heap.size - 1
+    heap.heapArray[index] = newNode
+    
+    // Sift-Up loop: Move the inserted node up until heap invariant is satisfied:
+    // (Parent frequency must be <= child frequency)
+    While index > 0:
+        parentIndex = (index - 1) / 2
+        If heap.heapArray[index].frequency < heap.heapArray[parentIndex].frequency Then
+            // Swap child with parent
+            Swap(heap.heapArray[index], heap.heapArray[parentIndex])
+            index = parentIndex
+        Else:
+            Break // Invariant holds; stop shifting up
+        End If
+    End While
+End Procedure
+
+Procedure ExtractMin(heap):
+    // PURPOSE: Remove and return the node with the absolute lowest frequency.
+    If heap.size == 0 Then Return NULL
+    
+    // The root of the min-heap holds the minimum frequency node
+    minNode = heap.heapArray[0]
+    
+    // Move the last element to the root position
+    heap.heapArray[0] = heap.heapArray[heap.size - 1]
+    heap.size = heap.size - 1
+    
+    // Sift-Down loop (Heapify): Restore min-heap property from root downwards
+    index = 0
+    While true:
+        smallest = index
+        leftChild = 2 * index + 1
+        rightChild = 2 * index + 2
+        
+        // Compare with left child
+        If leftChild < heap.size AND heap.heapArray[leftChild].frequency < heap.heapArray[smallest].frequency Then
+            smallest = leftChild
+        End If
+        
+        // Compare with right child
+        If rightChild < heap.size AND heap.heapArray[rightChild].frequency < heap.heapArray[smallest].frequency Then
+            smallest = rightChild
+        End If
+        
+        // If the smallest is not current index, swap and continue sifting down
+        If smallest != index Then
+            Swap(heap.heapArray[index], heap.heapArray[smallest])
+            index = smallest
+        Else:
+            Break // Heap property restored
+        End If
+    End While
+    
+    Return minNode
+End Procedure
+
+
+================================================================================
+4. ALGORITHM 3: GREEDY HUFFMAN TREE CONSTRUCTION
+================================================================================
+
+Procedure BuildHuffmanTree(freqTable):
+    // PURPOSE: Construct the optimal binary prefix tree using Greedy Choice Property.
+    // At each step, greedily merge the two subtrees with the lowest weights.
+    
+    // Step 1: Initialize Min-Heap
+    heap = CreateEmptyMinHeap()
+    
+    // Step 2: Create a leaf node for every character present in the file
+    For symbol from 0 to 255:
+        If freqTable[symbol] > 0 Then
+            leafNode = AllocateNode()
+            leafNode.symbol = symbol
+            leafNode.frequency = freqTable[symbol]
+            leafNode.isLeaf = true
+            leafNode.left = NULL
+            leafNode.right = NULL
+            MinHeapInsert(heap, leafNode)
+        End If
+    End For
+    
+    // Edge case: Handle single unique character file
+    If heap.size == 1 Then
+        singleNode = ExtractMin(heap)
+        dummyParent = AllocateNode()
+        dummyParent.frequency = singleNode.frequency
+        dummyParent.left = singleNode
+        dummyParent.right = NULL
+        dummyParent.isLeaf = false
+        Return dummyParent
+    End If
+    
+    // Step 3: GREEDY MERGE LOOP
+    // Repeat (N - 1) times where N is the number of unique symbols:
+    // Extract two minimum nodes and merge them into a new internal node.
+    While heap.size > 1:
+        // Greedy choice: Always pick the two least frequent nodes
+        leftSubtree  = ExtractMin(heap)
+        rightSubtree = ExtractMin(heap)
+        
+        // Create new internal node whose frequency is the sum of both children
+        mergedParent = AllocateNode()
+        mergedParent.symbol = 0
+        mergedParent.isLeaf = false
+        mergedParent.frequency = leftSubtree.frequency + rightSubtree.frequency
+        mergedParent.left = leftSubtree    // Left branch will represent bit 0
+        mergedParent.right = rightSubtree  // Right branch will represent bit 1
+        
+        // Insert the merged subtree back into the Min-Heap
+        MinHeapInsert(heap, mergedParent)
+    End While
+    
+    // The single remaining element in the heap is the root of the complete Huffman tree
+    rootNode = ExtractMin(heap)
+    Return rootNode
+End Procedure
+
+
+================================================================================
+5. ALGORITHM 4: PREFIX-FREE CODE GENERATION (DFS TRAVERSAL)
+================================================================================
+
+Procedure GenerateCodes(rootNode):
+    // PURPOSE: Traverse the Huffman tree from root to leaves to assign a unique,
+    // prefix-free binary bit sequence to every leaf character.
+    
+    Initialize table codeTable[0 ... 255]
+    currentCode = EmptyBitCode()
+    
+    // Launch recursive Depth-First Search (DFS)
+    TraverseTree(rootNode, currentCode, codeTable)
+    
+    Return codeTable
+End Procedure
+
+Procedure TraverseTree(currentNode, currentCode, codeTable):
+    If currentNode is NULL Then Return
+    
+    // Base Case: If this is a leaf node, store the accumulated bitcode
+    If currentNode.isLeaf is true Then
+        codeTable[currentNode.symbol] = currentCode
+        Return
+    End If
+    
+    // Recursive Case 1: Traverse Left Child (append binary '0')
+    currentCode.AppendBit(0)
+    TraverseTree(currentNode.left, currentCode, codeTable)
+    currentCode.RemoveLastBit() // Backtrack
+    
+    // Recursive Case 2: Traverse Right Child (append binary '1')
+    currentCode.AppendBit(1)
+    TraverseTree(currentNode.right, currentCode, codeTable)
+    currentCode.RemoveLastBit() // Backtrack
+End Procedure
+
+
+================================================================================
+6. ALGORITHM 5: LZ77 SLIDING-WINDOW DICTIONARY PRE-PASS
+================================================================================
+
+Procedure LZ77Compress(inputBuffer):
+    // PURPOSE: Find repeated substring occurrences within a 32 KB sliding window
+    // using hash chaining. Replaces repetitive strings with (distance, length) pairs.
+    
+    WINDOW_SIZE = 32768    // 32 KB sliding search buffer
+    MIN_MATCH = 3          // Minimum match length to be beneficial
+    MAX_MATCH = 258        // Maximum match length
+    
+    Initialize array head[0 ... 65535] with -1  // Hash table for 3-byte prefixes
+    Initialize array prev[0 ... length(inputBuffer) - 1] with -1 // Chain links
+    outputTokens = EmptyList()
+    
+    cursor = 0
+    bufferLength = length(inputBuffer)
+    
+    While cursor < bufferLength:
+        matchLength = 0
+        matchDistance = 0
+        
+        // Look up 3-byte prefix hash in dictionary if enough bytes remain
+        If cursor + MIN_MATCH <= bufferLength Then
+            hash = ComputeHash(inputBuffer[cursor], inputBuffer[cursor+1], inputBuffer[cursor+2])
+            candidatePos = head[hash]
+            
+            // Search backward chain for longest match within window
+            chainLimit = 128 // Limit chain traversal for high throughput
+            While candidatePos != -1 AND (cursor - candidatePos) <= WINDOW_SIZE AND chainLimit > 0:
+                len = CompareBytes(inputBuffer, candidatePos, cursor, MAX_MATCH)
+                If len > matchLength Then
+                    matchLength = len
+                    matchDistance = cursor - candidatePos
+                End If
+                candidatePos = prev[candidatePos]
+                chainLimit = chainLimit - 1
+            End While
+            
+            // Insert current position into hash chain
+            prev[cursor] = head[hash]
+            head[hash] = cursor
+        End If
+        
+        // Decide whether to emit match token or raw literal
+        If matchLength >= MIN_MATCH Then
+            // Found repeated sequence: emit (distance, length)
+            outputTokens.Append(MatchToken(distance: matchDistance, length: matchLength))
+            cursor = cursor + matchLength
+        Else:
+            // No significant match found: emit literal character
+            outputTokens.Append(LiteralToken(byte: inputBuffer[cursor]))
+            cursor = cursor + 1
+        End If
+    End While
+    
+    Return outputTokens
+End Procedure
+
+
+================================================================================
+7. ALGORITHM 6: COMPACT TREE TOPOLOGY SERIALIZATION & DESERIALIZATION
+================================================================================
+
+// PURPOSE: Minimizes file header overhead by writing the binary tree structure
+// bit-by-bit: 1 bit for internal node, 1 bit + 8 bits for leaf symbol.
+
+Procedure SerializeTree(node, bitWriter):
+    If node.isLeaf is true Then
+        // Write bit '1' indicating a leaf node
+        bitWriter.WriteBit(1)
+        // Write the 8-bit symbol value directly
+        bitWriter.WriteBits(node.symbol, 8)
+    Else:
+        // Write bit '0' indicating an internal branch node
+        bitWriter.WriteBit(0)
+        // Recursively serialize left and right subtrees (Pre-order DFS)
+        SerializeTree(node.left, bitWriter)
+        SerializeTree(node.right, bitWriter)
+    End If
+End Procedure
+
+Procedure DeserializeTree(bitReader):
+    // Read 1 bit to determine node type
+    bit = bitReader.ReadBit()
+    
+    If bit == 1 Then
+        // It's a leaf node: read the 8-bit symbol
+        symbol = bitReader.ReadBits(8)
+        leaf = AllocateNode()
+        leaf.isLeaf = true
+        leaf.symbol = symbol
+        leaf.left = NULL
+        leaf.right = NULL
+        Return leaf
+    Else:
+        // It's an internal branch: reconstruct left and right subtrees
+        internalNode = AllocateNode()
+        internalNode.isLeaf = false
+        internalNode.left = DeserializeTree(bitReader)
+        internalNode.right = DeserializeTree(bitReader)
+        Return internalNode
+    End If
+End Procedure
+
+
+================================================================================
+8. ALGORITHM 7: FULL FILE COMPRESSION PIPELINE
+================================================================================
+
+Procedure CompressFile(inputFilePath, outputFilePath):
+    // Step 1: Read all bytes from input file
+    inputBytes = ReadBinaryFile(inputFilePath)
+    originalSize = length(inputBytes)
+    
+    // Step 2: Compute Adler-32 Checksum of original uncompressed data
+    checksum = ComputeAdler32(inputBytes)
+    
+    // Step 3: Run LZ77 Dictionary pre-pass to find substring repetitions
+    tokens = LZ77Compress(inputBytes)
+    
+    // Step 4: Calculate symbol frequencies across tokens
+    freqTable = CountTokenFrequencies(tokens)
+    
+    // Step 5: Build Greedy Huffman Tree using Min-Heap
+    huffmanTree = BuildHuffmanTree(freqTable)
+    
+    // Step 6: Generate Prefix-Free Variable-Length Codes
+    codeTable = GenerateCodes(huffmanTree)
+    
+    // Step 7: Open BitWriter on output file (.huff)
+    bitWriter = CreateBitWriter(outputFilePath)
+    
+    // Step 8: Write File Header (17 bytes fixed)
+    bitWriter.WriteBytes("HUFF", 4)              // 4-byte Magic Identifier
+    bitWriter.WriteByte(2)                       // 1-byte Format Version
+    bitWriter.WriteByte(FLAG_LZ_HUFFMAN)         // 1-byte Compression Method Flag
+    bitWriter.WriteUInt64(originalSize)          // 8-byte Original File Size
+    bitWriter.WriteUInt32(checksum)              // 4-byte Adler-32 Verification Hash
+    
+    // Step 9: Serialize compact Huffman tree structure
+    SerializeTree(huffmanTree, bitWriter)
+    
+    // Step 10: Encode compressed bitstream using Huffman codeTable
+    For each token in tokens:
+        If token.isMatch is false Then
+            code = codeTable[token.literal]
+            bitWriter.WriteBits(code.bits, code.length)
+        Else:
+            // Write match marker and variable-length distance/length codes
+            code = codeTable[MATCH_ESCAPE_SYMBOL]
+            bitWriter.WriteBits(code.bits, code.length)
+            bitWriter.WriteBits(token.distance, 15)
+            bitWriter.WriteBits(token.length, 8)
+        End If
+    End For
+    
+    // Step 11: Flush remaining bits and close file
+    bitWriter.FlushToByteBoundary()
+    bitWriter.Close()
+    
+    Return Success
+End Procedure
+
+
+================================================================================
+9. ALGORITHM 8: FULL FILE DECOMPRESSION PIPELINE
+================================================================================
+
+Procedure DecompressFile(inputFilePath, outputFilePath):
+    // Step 1: Open BitReader on .huff archive
+    bitReader = CreateBitReader(inputFilePath)
+    
+    // Step 2: Validate Magic Identifier
+    magic = bitReader.ReadBytes(4)
+    If magic != "HUFF" Then
+        RaiseError("Invalid archive: Not a valid .huff file")
+    End If
+    
+    // Step 3: Parse Header Metadata
+    version = bitReader.ReadByte()
+    method = bitReader.ReadByte()
+    originalSize = bitReader.ReadUInt64()
+    expectedChecksum = bitReader.ReadUInt32()
+    
+    // Step 4: Deserialize Huffman Tree Topology
+    huffmanTree = DeserializeTree(bitReader)
+    
+    // Step 5: Decode Huffman Bitstream back to tokens / raw bytes
+    decodedBuffer = AllocateBuffer(originalSize)
+    bytesDecoded = 0
+    currentNode = huffmanTree
+    
+    While bytesDecoded < originalSize:
+        // Read 1 bit from stream
+        bit = bitReader.ReadBit()
+        
+        // Traverse tree: bit 0 -> left child, bit 1 -> right child
+        If bit == 0 Then
+            currentNode = currentNode.left
+        Else:
+            currentNode = currentNode.right
+        End If
+        
+        // When a leaf node is reached, symbol is decoded!
+        If currentNode.isLeaf is true Then
+            decodedBuffer[bytesDecoded] = currentNode.symbol
+            bytesDecoded = bytesDecoded + 1
+            currentNode = huffmanTree // Reset to root for next symbol
+        End If
+    End While
+    
+    // Step 6: Verify Adler-32 Integrity Checksum
+    actualChecksum = ComputeAdler32(decodedBuffer)
+    If actualChecksum != expectedChecksum Then
+        RaiseError("Checksum Mismatch: Archive is corrupted!")
+    End If
+    
+    // Step 7: Write restored bytes to destination file
+    WriteBinaryFile(outputFilePath, decodedBuffer)
+    Return Success (100% Lossless Match)
+End Procedure
+
+
+================================================================================
+10. ALGORITHM 9: ADLER-32 CHECKSUM CALCULATION
+================================================================================
+
+Procedure ComputeAdler32(buffer):
+    // PURPOSE: High-speed 32-bit checksum for verifying file integrity.
+    // Composed of two 16-bit sums: A = 1 + sum(bytes), B = sum(A_i) mod 65521.
+    
+    MOD_ADLER = 65521
+    a = 1
+    b = 0
+    
+    For each byte in buffer:
+        a = (a + byte) MOD MOD_ADLER
+        b = (b + a) MOD MOD_ADLER
+    End For
+    
+    // Combine both 16-bit halves into single 32-bit integer: (B << 16) | A
+    checksum = (b * 65536) + a
+    Return checksum
+End Procedure
+
+
+================================================================================
+11. THEORETICAL COMPLEXITY ANALYSIS (DAA CURRICULUM)
+================================================================================
+
+1. TIME COMPLEXITY:
+   -----------------------------------------------------------------------------
+   Phase                        Algorithm                  Time Complexity
+   -----------------------------------------------------------------------------
+   Frequency Counting           Direct Array Accumulation  O(N)
+   Min-Heap Construction        Heap Insert x K symbols    O(K log K) <= O(256 log 256)
+   Huffman Tree Construction    Greedy (K - 1) Merges      O(K log K)
+   Prefix Code Generation       Tree DFS Traversal         O(K)
+   LZ77 Dictionary Match        Sliding Window Hash Chain  O(N) average
+   Bitstream Encoding           Array lookup + BitWriter   O(N)
+   Bitstream Decoding           Tree traversal per bit     O(N * H) where H <= 16
+   Checksum Verification        Adler-32 Loop              O(N)
+   -----------------------------------------------------------------------------
+   OVERALL COMPRESSION TIME:    O(N) linear in file size (since K <= 256 is constant)
+   OVERALL DECOMPRESSION TIME:  O(N) linear in file size
+
+2. SPACE COMPLEXITY:
+   -----------------------------------------------------------------------------
+   Data Structure               Memory Used                Space Complexity
+   -----------------------------------------------------------------------------
+   Frequency Table              256 * 8 bytes = 2 KB       O(K) = O(1) auxiliary
+   Min-Heap Storage             512 pointers = 4 KB        O(K) = O(1) auxiliary
+   Huffman Binary Tree          <= 511 nodes * 32 bytes    O(K) = O(1) auxiliary
+   LZ77 Hash Table & Chains     64K entries + N links      O(N) auxiliary
+   I/O Stream Buffers           64 KB chunk buffers        O(1) auxiliary
+   -----------------------------------------------------------------------------
+   OVERALL AUXILIARY SPACE:     O(N) working memory, O(1) heap/tree memory
+
+================================================================================
+                           END OF PSEUDOCODE SPECIFICATION
+================================================================================

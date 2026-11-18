@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C2183A" stop-opacity="0.18"/>
+      <stop offset="60%" stop-color="#080808" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#080808" stop-opacity="1.0"/>
+    </radialGradient>
+
+    <!-- Glass Gradients -->
+    <linearGradient id="glassBig" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A2A32" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#141418" stop-opacity="0.75"/>
+    </linearGradient>
+
+    <linearGradient id="glassSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3D121D" stop-opacity="0.90"/>
+      <stop offset="100%" stop-color="#1C0A0F" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Arrow Gradient -->
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F04464"/>
+      <stop offset="100%" stop-color="#C2183A"/>
+    </linearGradient>
+
+    <!-- Specular Highlight Borders -->
+    <linearGradient id="specularBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#C2183A" stop-opacity="0.25"/>
+    </linearGradient>
+
+    <linearGradient id="smallBorder" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F04464" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#C2183A" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Drop Shadows / Glows -->
+    <filter id="cherryGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <!-- App Icon Squircle Background (Apple macOS style) -->
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="#0C0C0F"/>
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="url(#bgGlow)"/>
+  <rect x="16" y="16" width="480" height="480" rx="108" fill="none" stroke="url(#specularBorder)" stroke-width="2"/>
+
+  <!-- Subtle grid / optical refraction lines in background -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#C2183A" stroke-opacity="0.06" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#FFFFFF" stroke-opacity="0.03" stroke-width="1"/>
+
+  <!-- ============================================== -->
+  <!-- 1. BIG FILE (Left, uncompressed raw document)  -->
+  <!-- ============================================== -->
+  <g filter="url(#softShadow)">
+    <!-- File Body: Width 150, Height 210, Corner fold at top right (38px) -->
+    <!-- Coords: X: 64 to 214, Y: 151 to 361 -->
+    <path d="M 80 151 
+             L 176 151 
+             L 214 189 
+             L 214 345 
+             A 16 16 0 0 1 198 361 
+             L 80 361 
+             A 16 16 0 0 1 64 345 
+             L 64 167 
+             A 16 16 0 0 1 80 151 Z" 
+          fill="url(#glassBig)" 
+          stroke="url(#specularBorder)" 
+          stroke-width="2"/>
+
+    <!-- Dog-Ear Fold -->
+    <path d="M 176 151 L 176 181 A 8 8 0 0 0 184 189 L 214 189 Z" 
+          fill="#353540" 
+          stroke="url(#specularBorder)" 
+          stroke-width="1.5"/>
+
+    <!-- Content Lines (Simulating document data / bytes) -->
+    <rect x="88" y="210" width="102" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.4"/>
+    <rect x="88" y="230" width="80" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.25"/>
+    <rect x="88" y="250" width="102" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.25"/>
+    <rect x="88" y="270" width="65" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.2"/>
+    <rect x="88" y="290" width="95" height="6" rx="3" fill="#FFFFFF" fill-opacity="0.2"/>
+
+    <!-- File Size Badge: "RAW 1.0x" -->
+    <rect x="88" y="318" width="68" height="20" rx="6" fill="#1B1B22" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="1"/>
+    <text x="122" y="332" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="700" fill="#A1A1AA" text-anchor="middle" letter-spacing="0.5">RAW</text>
+  </g>
+
+  <!-- ============================================== -->
+  <!-- 2. CONNECTING ARROW (Center, Compression flow) -->
+  <!-- ============================================== -->
+  <g filter="url(#cherryGlow)">
+    <!-- Glowing trail particles -->
+    <circle cx="236" cy="256" r="3" fill="#F04464" opacity="0.4"/>
+    <circle cx="248" cy="256" r="4" fill="#F04464" opacity="0.7"/>
+
+    <!-- Dynamic Tapered Arrow pointing right -->
+    <!-- Shaft: from X 255 to 300, Head: to X 326 -->
+    <path d="M 252 248 
+             L 294 248 
+             L 294 236 
+             L 326 256 
+             L 294 276 
+             L 294 264 
+             L 252 264 
+             Z" 
+          fill="url(#arrowGrad)"/>
+
+    <!-- Arrow Specular Edge -->
+    <path d="M 252 248 L 294 248 L 294 236 L 326 256" 
+          fill="none" 
+          stroke="#FFFFFF" 
+          stroke-width="1.5" 
+          stroke-opacity="0.6" 
+          stroke-linecap="round"/>
+  </g>
+
+  <!-- Algorithm Pill above Arrow -->
+  <rect x="246" y="196" width="76" height="18" rx="9" fill="#1C0A0F" stroke="#C2183A" stroke-opacity="0.6" stroke-width="1"/>
+  <text x="284" y="209" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#F04464" text-anchor="middle" letter-spacing="0.8">HUFFMAN</text>
+
+  <!-- ============================================== -->
+  <!-- 3. SMALL FILE (Right, compressed .huff archive)-->
+  <!-- ============================================== -->
+  <g filter="url(#softShadow)">
+    <!-- Small File Body: Width 105, Height 145, Scaled down to ~60% -->
+    <!-- Coords: X: 345 to 450, Y: 184 to 329 -->
+    <path d="M 357 184 
+             L 423 184 
+             L 450 211 
+             L 450 317 
+             A 12 12 0 0 1 438 329 
+             L 357 329 
+             A 12 12 0 0 1 345 317 
+             L 345 196 
+             A 12 12 0 0 1 357 184 Z" 
+          fill="url(#glassSmall)" 
+          stroke="url(#smallBorder)" 
+          stroke-width="2"/>
+
+    <!-- Small File Fold -->
+    <path d="M 423 184 L 423 205 A 6 6 0 0 0 429 211 L 450 211 Z" 
+          fill="#4D1422" 
+          stroke="url(#smallBorder)" 
+          stroke-width="1.2"/>
+
+    <!-- Compressed Representation / Zipper or Compact Blocks -->
+    <rect x="361" y="226" width="60" height="4" rx="2" fill="#F04464" fill-opacity="0.7"/>
+    <rect x="361" y="238" width="46" height="4" rx="2" fill="#FFFFFF" fill-opacity="0.5"/>
+    <rect x="361" y="250" width="54" height="4" rx="2" fill="#F04464" fill-opacity="0.7"/>
+
+    <!-- .HUFF Extension Badge -->
+    <rect x="361" y="280" width="58" height="22" rx="6" fill="#C2183A" filter="url(#cherryGlow)"/>
+    <text x="390" y="295" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10" font-weight="800" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">.HUFF</text>
+  </g>
+
+  <!-- Bottom Subtitle Brand -->
+  <text x="256" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="3.0">SHRINK<tspan fill="#F04464">IT</tspan></text>
+  <text x="256" y="442" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#A1A1AA" text-anchor="middle" letter-spacing="1.5">GREEDY HUFFMAN COMPRESSION</text>
+</svg>
